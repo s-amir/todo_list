@@ -1,0 +1,21 @@
+./todo
+# Ignore all log files
+*.log
+
+# Ignore node_modules or dependencies
+node_modules/
+venv/
+__pycache__/
+
+# Ignore compiled files
+*.class
+*.o
+*.out
+*.exe
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore environment files
+.env
