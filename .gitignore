@@ -1,4 +1,4 @@
-./todo
+todo
 # Ignore all log files
 *.log
 
@@ -19,3 +19,4 @@ Thumbs.db
 
 # Ignore environment files
 .env
+.idea
