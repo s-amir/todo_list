@@ -20,3 +20,7 @@ func DayOfWeek(i int8) string {
 		return ""
 	}
 }
+
+func Square(i float64) float64 {
+	return i * i
+}
