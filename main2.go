@@ -40,7 +40,7 @@ var categories []category
 
 const userFilePath string = "./users.txt"
 
-func main2() {
+func main2() { //callable in main
 	loadUsers()
 	fmt.Printf("hello to TODO app\n")
 	command := flag.String("command", "noCommand", "command to rin application")
