@@ -2,7 +2,8 @@ package main
 
 import (
 	"awesomeProject/app"
-	"fmt"
+	"awesomeProject/logs"
+	//"fmt"
 )
 
 func main() {
@@ -34,9 +35,16 @@ func main() {
 			UsersMap: users,
 		},
 	}
-	fmt.Println(app1.FindUserId(1))
-	fmt.Println(app1.CreateUser(app.User{Id: 4, Name: "user4"}))
-	fmt.Println(app1.FindUserId(4))
-	fmt.Println(app1.DeleteUser(1))
-	fmt.Println(app1.FindUserId(2))
+	//fmt.Println(app1.FindUserId(1))
+	//fmt.Println(app1.CreateUser(app.User{Id: 4, Name: "user4"}))
+	//fmt.Println(app1.FindUserId(4))
+	//fmt.Println(app1.DeleteUser(100))
+	//fmt.Println(app1.FindUserId(2))
+
+	logger := logs.Log{}
+	ok, err := app1.DeleteUser(100)
+	if !ok {
+		logger.Append(err)
+		logger.Save()
+	}
 }

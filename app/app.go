@@ -1,10 +1,10 @@
 package app
 
-// StorageLayer use dependency inversion with interface
+// StorageLayer use dependency inversion with logs
 type StorageLayer interface {
-	CreateUser(user User) bool
+	CreateUser(user User) (bool, error)
 	FindUserId(id int) User
-	DeleteUser(id int) bool
+	DeleteUser(id int) (bool, error)
 }
 
 type App struct {
@@ -45,12 +45,12 @@ type User struct {
 
 //}
 
-func (app *App) CreateUser(user User) bool {
+func (app *App) CreateUser(user User) (bool, error) {
 	return app.UserStorage.CreateUser(user)
 }
 func (app *App) FindUserId(id int) User {
 	return app.UserStorage.FindUserId(id)
 }
-func (app *App) DeleteUser(id int) bool {
+func (app *App) DeleteUser(id int) (bool, error) {
 	return app.UserStorage.DeleteUser(id)
 }
