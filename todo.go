@@ -41,7 +41,13 @@ var categories []category
 const userFilePath string = "./users.txt"
 
 func main2() { //callable in main
-	loadUsers()
+	fileLoader := FileLoader{FilePath: userFilePath}
+	users, err := LoadUsers(fileLoader)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(users)
 	fmt.Printf("hello to TODO app\n")
 	command := flag.String("command", "noCommand", "command to rin application")
 	flag.Parse()
@@ -136,7 +142,7 @@ func createTask() {
 		panic("faild to parse category id")
 		return
 	}
-	var findCategory bool = false
+	var findCategory = false
 	for _, c := range categories {
 		if c.id == categoryId && c.userId == authenticatedUser.id {
 			findCategory = true
@@ -206,23 +212,44 @@ func createCategory() {
 
 }
 
-func loadUsers() {
-	content, err := os.ReadFile(userFilePath)
+type SaveStorage interface {
+	Save()
+}
+type Loader interface {
+	Load() ([]User, error)
+}
+
+type FileLoader struct {
+	FilePath string
+}
+
+func (fl FileLoader) Load() ([]User, error) {
+	content, err := os.ReadFile(fl.FilePath)
 	if err != nil {
-		fmt.Println("Error reading file:", err)
-		return
+		return nil, fmt.Errorf("error reading file: %w", err)
 	}
-	var storedUsers = strings.Split(strings.TrimRight(string(content), "\n"), "\n")
+
+	var users []User
+	storedUsers := strings.Split(strings.TrimSpace(string(content)), "\n")
+
 	for _, user := range storedUsers {
 		userFields := strings.Split(user, ",")
 		var tempUser User
+
 		for _, userField := range userFields {
-			keyVaue := strings.Split(userField, ":")
-			key := strings.Trim(keyVaue[0], " ")
-			value := strings.Trim(keyVaue[1], " ")
+			keyValue := strings.SplitN(userField, ":", 2) // Avoid index out of range errors
+			if len(keyValue) != 2 {
+				continue
+			}
+			key := strings.TrimSpace(keyValue[0])
+			value := strings.TrimSpace(keyValue[1])
+
 			switch key {
 			case "ID":
 				tempUser.id, err = strconv.Atoi(value)
+				if err != nil {
+					return nil, fmt.Errorf("invalid ID format: %s", value)
+				}
 			case "Name":
 				tempUser.name = value
 			case "Email":
@@ -231,11 +258,20 @@ func loadUsers() {
 				tempUser.password = value
 			default:
 				fmt.Println("Unknown field:", key)
-
 			}
-
 		}
-		Users = append(Users, tempUser)
+		users = append(users, tempUser)
 	}
 
+	return users, nil
+}
+
+// LoadUsers can get different implementation of users
+func LoadUsers(loader Loader) ([]User, error) {
+	users, err := loader.Load()
+	if err != nil {
+		fmt.Println("Error loading users:", err)
+	}
+	fmt.Println("Loading users")
+	return users, nil
 }

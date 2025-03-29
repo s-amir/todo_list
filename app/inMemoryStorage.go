@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"time"
 )
@@ -28,7 +29,8 @@ func (storage *InMemoryStorage) DeleteUser(id int) (bool, error) {
 		delete(storage.UsersMap, uint(id))
 		return true, nil
 	} else {
-		return false, &logs.RichError{Message: "User not found", MetaData: nil, Operation: "DeleteUser", Time: time.Now()}
+		//return false, &logs.RichError{Message: "User not found", MetaData: nil, Operation: "DeleteUser", Time: time.Now()}
+		return false, errors.New("user not found")
 	}
 
 }

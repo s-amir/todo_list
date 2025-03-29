@@ -1,1 +1,1 @@
-[{"Message":"User not found","MetaData":null,"Operation":"DeleteUser","Time":"2025-03-29T02:00:04.68792387+03:30"}]
+[{"Message":"user not found","MetaData":{"type":"unknown"},"Operation":"Unknown","Time":"2025-03-29T02:02:14.18693863+03:30"}][{"Message":"user not found","MetaData":{"type":"unknown"},"Operation":"Unknown","Time":"2025-03-29T14:38:51.261288024+03:30"}]
