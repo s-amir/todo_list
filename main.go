@@ -1,52 +1,230 @@
 package main
 
 import (
-// "awesomeProject/app"
-// "awesomeProject/logs"
-// "fmt"
+	"awesomeProject/constant"
+	"awesomeProject/contract"
+	"awesomeProject/server/entity"
+	"awesomeProject/server/repository/filestorage"
+	"awesomeProject/server/repository/inmem"
+	"awesomeProject/server/service/task"
+	"bufio"
+	"crypto/md5"
+	"encoding/hex"
+	"flag"
+	"fmt"
+	"os"
+	"strconv"
+)
+
+var (
+	userStorage     []entity.User
+	categoryStorage []entity.Category
+
+	authenticatedUser *entity.User
+	serializationMode string
+)
+
+const (
+	userStoragePath = "user.txt"
 )
 
 func main() {
-	main2()
-	//------------------------------------------
-	//test.DayOfWeek(1)
-	//-----------------------------------------
-	//user1 := app.User{
-	//	Id:   uint(1),
-	//	Name: "user1",
-	//}
-	//user2 := app.User{
-	//	Id:   uint(2),
-	//	Name: "user2",
-	//}
-	//
-	//user3 := app.User{
-	//	Id:   uint(3),
-	//	Name: "user3",
-	//}
-	//
-	//users := map[uint]app.User{
-	//	user1.Id: user1,
-	//	user2.Id: user2,
-	//	user3.Id: user3,
-	//}
-	//app1 := app.App{
-	//	Id:   1,
-	//	Name: "app1",
-	//	UserStorage: &app.InMemoryStorage{
-	//		UsersMap: users,
-	//	},
-	//}
-	////fmt.Println(app1.FindUserId(1))
-	////fmt.Println(app1.CreateUser(app.User{Id: 4, Name: "user4"}))
-	////fmt.Println(app1.FindUserId(4))
-	////fmt.Println(app1.DeleteUser(100))
-	////fmt.Println(app1.FindUserId(2))
-	//
-	//logger := logs.Log{}
-	//ok, err := app1.DeleteUser(100)
-	//if !ok {
-	//	logger.Append(err)
-	//	logger.Save()
-	//}
+	taskMemoryRepo := inmem.NewTask()
+
+	taskService := task.NewTaskService(taskMemoryRepo)
+
+	serializeMode := flag.String("serialize-mode", constant.ManDarAvardiSerializationMode, "serialization mode to write data to file")
+	command := flag.String("command", "no-command", "command to run")
+	flag.Parse()
+
+	fmt.Println("Hello to TODO app")
+
+	switch *serializeMode {
+	case constant.ManDarAvardiSerializationMode:
+		serializationMode = constant.ManDarAvardiSerializationMode
+	default:
+		serializationMode = constant.JsonSerializationMode
+	}
+
+	var userFileStore = filestorage.New(serializationMode, userStoragePath)
+
+	// load user storage from file
+	users := userFileStore.Load()
+	userStorage = append(userStorage, users...)
+
+	// if there is a user record with corresponding data allow the user to continue
+
+	for {
+		runCommand(userFileStore, *command, taskService)
+
+		scanner := bufio.NewScanner(os.Stdin)
+		fmt.Println("please enter another command")
+		scanner.Scan()
+		*command = scanner.Text()
+	}
+}
+
+func runCommand(store contract.UserWriteStore, command string, taskService *task.TaskService) {
+	if command != "register-user" && command != "exit" && authenticatedUser == nil {
+		login()
+
+		if authenticatedUser == nil {
+			return
+		}
+	}
+
+	switch command {
+	case "create-task":
+		createTask(taskService)
+	case "create-category":
+		createCategory()
+	case "register-user":
+		registerUser(store)
+	case "list-task":
+		listTask(taskService)
+	case "login":
+		login()
+	case "exit":
+		os.Exit(0)
+	default:
+		fmt.Println("command is not valid", command)
+	}
+}
+
+func createTask(taskService *task.TaskService) {
+
+	scanner := bufio.NewScanner(os.Stdin)
+	var title, duedate, category string
+
+	fmt.Println("please enter the task title")
+	scanner.Scan()
+	title = scanner.Text()
+
+	fmt.Println("please enter the task category id")
+	scanner.Scan()
+	category = scanner.Text()
+
+	categoryID, err := strconv.Atoi(category)
+	if err != nil {
+		fmt.Printf("category-id is not valid integer, %v\n", err)
+
+		return
+	}
+
+	fmt.Println("please enter the task due date")
+	scanner.Scan()
+	duedate = scanner.Text()
+
+	response, err := taskService.Create(task.CreateRequest{
+		Title:               title,
+		DueDate:             duedate,
+		CategoryID:          categoryID,
+		AuthenticatedUserID: authenticatedUser.ID,
+	})
+
+	if err != nil {
+		fmt.Println("error", err)
+
+		return
+	}
+
+	fmt.Println("create task:", response.Task)
+}
+
+func createCategory() {
+	scanner := bufio.NewScanner(os.Stdin)
+	var title, color string
+
+	fmt.Println("please enter the category title")
+	scanner.Scan()
+	title = scanner.Text()
+
+	fmt.Println("please enter the category color")
+	scanner.Scan()
+	color = scanner.Text()
+	fmt.Println("category", title, color)
+
+	c := entity.Category{
+		ID:     len(categoryStorage) + 1,
+		Title:  title,
+		Color:  color,
+		UserID: authenticatedUser.ID,
+	}
+
+	categoryStorage = append(categoryStorage, c)
+}
+
+func registerUser(store contract.UserWriteStore) {
+	scanner := bufio.NewScanner(os.Stdin)
+	var id, name, email, password string
+
+	fmt.Println("please enter the name")
+	scanner.Scan()
+	name = scanner.Text()
+
+	fmt.Println("please enter the email")
+	scanner.Scan()
+	email = scanner.Text()
+
+	fmt.Println("please enter the password")
+	scanner.Scan()
+	password = scanner.Text()
+
+	id = email
+
+	fmt.Println("user:", id, email, password)
+
+	user := entity.User{
+		ID:       len(userStorage) + 1,
+		Name:     name,
+		Email:    email,
+		Password: hashThePassword(password),
+	}
+
+	userStorage = append(userStorage, user)
+
+	// writeUserToFile(user)
+	store.Save(user)
+}
+
+func login() {
+	fmt.Println("login process")
+	scanner := bufio.NewScanner(os.Stdin)
+	var email, password string
+
+	fmt.Println("please enter email")
+	scanner.Scan()
+	email = scanner.Text()
+
+	fmt.Println("please enter the password")
+	scanner.Scan()
+	password = scanner.Text()
+
+	for _, user := range userStorage {
+		if user.Email == email && user.Password == hashThePassword(password) {
+			authenticatedUser = &user
+			break
+		}
+	}
+
+	if authenticatedUser == nil {
+		fmt.Println("the email or password is not correct")
+	}
+}
+
+func listTask(taskService *task.TaskService) {
+	userTasks, err := taskService.List(task.ListUserTasksRequest{UserID: authenticatedUser.ID})
+	if err != nil {
+		fmt.Println("error", err)
+
+		return
+	}
+
+	fmt.Println("user tasks", userTasks.Tasks)
+}
+
+func hashThePassword(password string) string {
+	hash := md5.Sum([]byte(password))
+
+	return hex.EncodeToString(hash[:])
 }

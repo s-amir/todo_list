@@ -1,4 +1,4 @@
-package service
+package task
 
 import "awesomeProject/server/entity"
 
@@ -15,7 +15,7 @@ func NewTaskService(tr TaskRepository) *TaskService {
 	return &TaskService{repository: tr}
 }
 
-type createRequest struct {
+type CreateRequest struct {
 	Title               string
 	DueDate             string
 	CategoryID          int
@@ -23,10 +23,10 @@ type createRequest struct {
 }
 
 type CreateResponse struct {
-	task entity.Task
+	Task entity.Task
 }
 
-func (t *TaskService) Create(requestTask createRequest) (*CreateResponse, error) {
+func (t *TaskService) Create(requestTask CreateRequest) (*CreateResponse, error) {
 	newTask, err := t.repository.CreateNewTask(
 		entity.Task{
 			Title:      requestTask.Title,
@@ -37,7 +37,7 @@ func (t *TaskService) Create(requestTask createRequest) (*CreateResponse, error)
 	if err != nil {
 		return nil, err
 	}
-	return &CreateResponse{task: *newTask}, nil
+	return &CreateResponse{Task: *newTask}, nil
 }
 
 type ListUserTasksRequest struct {
@@ -48,7 +48,7 @@ type ListUserTasksResponse struct {
 	Tasks []entity.Task
 }
 
-func (t *TaskService) ListUserTasks(request ListUserTasksRequest) (*ListUserTasksResponse, error) {
+func (t *TaskService) List(request ListUserTasksRequest) (*ListUserTasksResponse, error) {
 	listUserTasks, err := t.repository.ListUserTasks(request.UserID)
 	if err != nil {
 		return nil, err
